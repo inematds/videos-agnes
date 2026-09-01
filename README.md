@@ -56,10 +56,27 @@ curl https://apihub.agnes-ai.com/v1/images/generations \
 **Não existe `seed` nem LoRA** na imagem. Params desconhecidos são **descartados em silêncio**
 (litellm `drop_params`) — HTTP 200 **não** prova que o parâmetro foi usado.
 
+### Os três modelos de imagem (medido 2026-09-01)
+
+`2.0-flash`, `2.1-flash` e `2.5-flash` estão **todos liberados**, no mesmo endpoint e com o
+**mesmo schema** (mesma resposta: `url`, `b64_json`, `revised_prompt`).
+
+| | 2.0-flash | 2.1-flash (em uso) | 2.5-flash |
+|---|---|---|---|
+| `size` 1K / pixels | ✅ | ✅ | ✅ |
+| `ratio` em text2img | ✅ 1K+16:9 → 1312×736 | ✅ | ✅ |
+| `seed` | ignorado | ignorado | ignorado |
+| img2img **5 refs** | — | ⚠️ **duplicou o personagem** | ✅ **não duplicou** (n=1) |
+
+O 2.5-flash é o **candidato** para trocar o 2.1 — o ganho plausível é aguentar mais referências
+(que é o gargalo do model sheet). Ainda **não** é regra: o teste foi com 5 cópias da mesma imagem.
+Medições completas em **[MODELOS.md](MODELOS.md)**.
+
 ### Contradições medidas (doc × prática)
 
-- ⚠️ **`ratio` é IGNORADO em img2img.** Pedir `1K`+`ratio:16:9` com referência volta **1024×1024**.
-  **Contorno:** `size` em **pixels explícitos** (`"1312x736"`), sem `ratio`.
+- ⚠️ **`ratio` em img2img — NÃO reproduz mais.** Estava documentado como "ignorado" (voltava
+  1024×1024 com referência). Em **2026-09-01** o mesmo teste devolveu **1312×736** no 2.1 e no 2.5.
+  **Contorno segue válido e é mais seguro:** `size` em **pixels explícitos** (`"1312x736"`).
 - ⚠️ O guia diz "3K/4K = 1 img/min". **Não observei esse limite** — duas chamadas 4K consecutivas
   passaram, sem 429.
 - ⚠️ Não há **cota real** consultável. `/v1/dashboard/billing/*` devolve valores de preenchimento
@@ -154,6 +171,9 @@ afrouxarem — ou num modelo sem esse gargalo — vira o default. Comprovado num
 ficou mais limpo.
 
 ## Modelos disponíveis (`GET /v1/models`)
+
+> Todas as medições brutas (schemas, erros que revelaram os limites, testes A/B e o que **ainda
+> não** foi confirmado) estão em **[MODELOS.md](MODELOS.md)**.
 
 Listagem ao vivo em **2026-09-01** (7 modelos — a lista MUDA: em 2026-08-31 eram 11):
 
