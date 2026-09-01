@@ -155,20 +155,56 @@ ficou mais limpo.
 
 ## Modelos disponíveis (`GET /v1/models`)
 
-Listagem ao vivo em **2026-08-31** (11 modelos):
+Listagem ao vivo em **2026-09-01** (7 modelos — a lista MUDA: em 2026-08-31 eram 11):
 
 | Tipo | Modelos |
 |---|---|
 | Imagem | `agnes-image-2.5-flash` · `agnes-image-2.1-flash` (em uso) · `agnes-image-2.0-flash` |
-| Vídeo | `agnes-video-2.5` ⛔ · `agnes-video-2.5-flash` ✅ · `agnes-video-v2.0` (em uso) |
-| Texto/visão | `agnes-2.5-pro` · `agnes-2.5-pro-beta` · `agnes-2.5-pro-alpha` · `agnes-2.5-flash` · `agnes-2.0-flash` |
+| Vídeo | `agnes-video-2.5-flash` ✅ · `agnes-video-v2.0` (em uso) |
+| Texto/visão | `agnes-2.5-flash` · `agnes-2.0-flash` |
 
-⛔ **`agnes-video-2.5` aparece na lista mas NÃO é acessível nesta assinatura**:
-`503 — No available channel for model agnes-video-2.5 under group TokenPlan (distributor)`.
-`agnes-video-2.5-flash` está liberado (passa o limitador normalmente).
+⛔ **`agnes-video-2.5` (não-flash) sumiu da listagem em 2026-09-01** — e continua barrado se
+chamado direto: `503 — No available channel for model agnes-video-2.5 under group TokenPlan`.
+Os `agnes-2.5-pro*` também sumiram da lista. Aparecer no `/v1/models` não garante canal, e
+**não aparecer não é permanente**: a listagem oscila.
 
-O pipeline segue em `agnes-video-v2.0` / `agnes-image-2.1-flash` — o 2.5-flash ainda não foi
-comparado em qualidade. Aparecer no `/v1/models` não garante canal no plano: testar antes de trocar.
+## `agnes-video-2.5-flash` — schema PRÓPRIO (medido 2026-09-01)
+
+**Não é o mesmo endpoint lógico do v2.0.** O 2.5-flash rejeita quase todos os campos do 2.0:
+`num_frames`, `frame_rate`, `width`, `height`, `quality`, `resolution` → **400 `forbidden field`**.
+A API valida campo a campo e devolve os valores válidos no erro — foi assim que a tabela abaixo
+foi levantada.
+
+| Campo | Valor |
+|---|---|
+| `mode` (**obrigatório**) | `text` · `reference` · `keyframe` — (`ti2vid`, `keyframes`, `t2v`, `i2v` → `invalid mode`) |
+| `seconds` | **string**, `"4"`–`"12"` (`seconds must be in [4, 12]`); número puro → `invalid_json` |
+| `aspect_ratio` | `21:9` · `16:9` · `4:3` · `1:1` · `3:4` · `9:16` |
+| `size` | a API aceita `720P`, `960P`, `2K` **na doc do erro**, mas **nesta assinatura só `720P`**: pedir 2K → 400 `size must be 720P` |
+| `images` | modo `reference`: **até 5** (`images length must not exceed 5`); aceita também `audios` e `videos` |
+| `first_frame` / `last_frame` | modo `keyframe` (`keyframe mode requires first_frame and/or last_frame`) |
+| polling | **`GET /v1/videos/<task_id>`** — o `GET /agnesapi?video_id=` do v2.0 devolve **404 task not found** para tarefas 2.5 |
+| rate limit | mesmo teto: **6 req/min** (o 429 conta requisições inválidas também) |
+
+Teste real (2026-09-01): `mode:"text"`, `seconds:"4"`, `aspect_ratio:"16:9"` → **completed em 62s**,
+custo US$ 0, MP4 em `platform-outputs.agnes-ai.space`. ffprobe: **1280x704 @24fps, 4,46s / 107 frames**
+— ou seja, o `size` continua mentindo (16:9 pedido, 1280x704 entregue) e a duração real passa um
+pouco do `seconds` pedido.
+
+### 2.0 × 2.5-flash — o que cada um ganha
+
+| | `agnes-video-v2.0` (em uso) | `agnes-video-2.5-flash` |
+|---|---|---|
+| Duração | `num_frames` 8n+1, teto por resolução: **480p 961 (40s)** · 720p 481 (20s) · 1080p 241 (10s) | **4–12s**, em passo de segundo |
+| Controle fino | frame a frame (`num_frames`/`frame_rate`) | só segundos inteiros |
+| Resolução | `width`/`height` livres (720p em uso) | só `720P` neste plano |
+| Referências | `extra_body.image` — na prática **máx. 2 úteis** (5 destroem a imagem) | **até 5** declaradas (não testado em qualidade) |
+| A→B | `mode:"keyframes"` | `mode:"keyframe"` (`first_frame`/`last_frame`) |
+| Multimodal | — | aceita `audios` e `videos` como referência |
+
+**Por que o pipeline continua no v2.0:** os clipes são dimensionados pela narração via `num_frames`
+(passo de 1/24s) e passam de 12s com frequência; o 2.5-flash trava em 12s e só segundos inteiros.
+O 2.5-flash é candidato para a técnica multi-plano (planos de 3–4s), onde o teto não incomoda.
 
 ### Cota / limites da assinatura — não são consultáveis (verificado 2026-08-31)
 

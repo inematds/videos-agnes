@@ -16,7 +16,8 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
     - ancora-mae em text2img; demais vistas DERIVADAS dela por img2img
       (gerar em paralelo produz personagens diferentes)
 
-  video (agnes-video-v2.0; existe 2.5-flash, nao adotado)
+  video (agnes-video-v2.0; existe 2.5-flash, nao adotado — schema incompativel:
+         seconds 4-12 em vez de num_frames, so 720P neste plano; ver README)
     - mode "keyframes" com [A, B]; base64 funciona (a doc diz que nao)
     - RATE LIMIT REAL: 6 req/min -> HTTP 429. Unico limite real da API
       (medido 2026-08-31; mesmo teto em agnes-video-2.5-flash)

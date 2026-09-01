@@ -67,7 +67,7 @@ com o inemavox por HTTP, com o ffmpeg e com o Telegram. Ver `dependencias.md`.
 - **Model sheet: derivar, não gerar em paralelo.** Mãe em text2img, resto por img2img.
 - **Nada de pose frontal simétrica** e sempre `exactly one ... one head` (positivo, nunca "no two").
 - **Descritor de estilo só estético** (nada de "eyes"/"hair"/"fur" — injeta personagem no cenário).
-- **Vídeo:** rate limit REAL 6 req/min (HTTP 429, medido 2026-08-31; mesmo teto no `agnes-video-2.5-flash`) — o pipeline já pausa. Base64 nos keyframes
+- **Vídeo:** rate limit REAL 6 req/min (HTTP 429, medido 2026-08-31; mesmo teto no `agnes-video-2.5-flash`, que tem schema proprio: `mode`+`seconds` 4-12, so 720P) — o pipeline já pausa. Base64 nos keyframes
   funciona. `num_frames` é 8n+1 com teto POR RESOLUÇÃO (medido 2026-08-31): 480p=961, **720p=481** (20,0s @24fps), 1080p=241 — a proporção não muda o teto. O `size` da resposta MENTE (mede com ffprobe).
 - **~34% de 503** na geração — retry com backoff já embutido.
 - **Narração define a duração:** gera a voz primeiro, cada clipe dura a fala da cena.

@@ -45,8 +45,13 @@ Gateway litellm sobre one-api. **Custo US$ 0**, sem créditos.
 - **Sem cota consultável.** `/v1/dashboard/billing/*` devolve valores de preenchimento;
   `/v1/rate_limits`, `/v1/limits`, `/v1/me` → 404; não há headers `X-RateLimit-*` (verificado
   2026-08-31). O único medidor de saturação é a taxa de 503, e o 429 é o único aviso de limite.
-- **`agnes-video-2.5` listado mas sem canal nesta assinatura:** 503 `No available channel ...
-  under group TokenPlan`. Aparecer em `/v1/models` ≠ estar liberado — testar antes de adotar.
+- **`agnes-video-2.5` (não-flash) sem canal nesta assinatura:** 503 `No available channel ...
+  under group TokenPlan`; em 2026-09-01 sumiu até da listagem. Aparecer em `/v1/models` ≠ estar
+  liberado, e a listagem oscila (11 modelos em 31/08, 7 em 01/09) — testar antes de adotar.
+- **`agnes-video-2.5-flash` tem schema PRÓPRIO** (medido 2026-09-01): `mode` obrigatório
+  (`text`/`reference`/`keyframe`), `seconds` string 4–12, `aspect_ratio` de 6 valores, `size` só
+  `720P` neste plano; `num_frames`/`frame_rate`/`width`/`height` são **campos proibidos**; polling
+  em `GET /v1/videos/<id>` (o `agnesapi` dá 404). Ver README para a tabela completa.
 
 ### Telegram — `api.telegram.org`
 
