@@ -43,6 +43,21 @@ Se quiser corrigir o português também, é decisão explícita do usuário, nã
    - `MOVIMENTO` = `{n: descrição do movimento A→B em inglês}`.
 3. Rodar. Conferir as folhas de contato ANTES de dar por pronto.
 
+## Skills irmãs — INVOCAR DIRETO, nunca descrever
+
+Quando a tarefa cair num dos casos abaixo, **chame a skill pela ferramenta Skill na hora**.
+Não explicar ao usuário que "existe a skill X", não pedir permissão, não reimplementar aqui:
+
+| Situação | Ação |
+|---|---|
+| Só há um assunto/história crua, sem cenas fatiadas | `Skill(roteiro)` → devolve `historia.json`, e daí se preenche `historias/<nome>.py` |
+| Uma cena saiu torta e precisa ser regerada avulsa | `Skill(imagens-agnes)` |
+| O usuário pediu decupagem, enquadramento, câmera, ritmo de corte **ou** escolher provedor | `Skill(videoanima)` — esta skill aqui é o caminho simples, sem direção |
+| O usuário pediu movimento em foto **sem** gerador de vídeo IA | `Skill(pixflow-motion)` |
+
+Fora desses casos o pipeline **não chama skill nenhuma**: fala direto com a API Agnes,
+com o inemavox por HTTP, com o ffmpeg e com o Telegram. Ver `dependencias.md`.
+
 ## Regras não-óbvias (medidas — ver `~/projetos/agnes-nei/NOTAS-API.md`)
 
 - **Prompts em INGLÊS.** Em PT a API bloqueia conteúdo legítimo (HTTP 400 do filtro).
@@ -52,7 +67,7 @@ Se quiser corrigir o português também, é decisão explícita do usuário, nã
 - **Model sheet: derivar, não gerar em paralelo.** Mãe em text2img, resto por img2img.
 - **Nada de pose frontal simétrica** e sempre `exactly one ... one head` (positivo, nunca "no two").
 - **Descritor de estilo só estético** (nada de "eyes"/"hair"/"fur" — injeta personagem no cenário).
-- **Vídeo:** rate limit REAL 5 req/min (HTTP 429) — o pipeline já pausa. Base64 nos keyframes
+- **Vídeo:** rate limit REAL 6 req/min (HTTP 429, medido 2026-08-31; mesmo teto no `agnes-video-2.5-flash`) — o pipeline já pausa. Base64 nos keyframes
   funciona. `num_frames ≤ 441` (18,4s @24fps), regra 8n+1. O `size` da resposta MENTE (mede com ffprobe).
 - **~34% de 503** na geração — retry com backoff já embutido.
 - **Narração define a duração:** gera a voz primeiro, cada clipe dura a fala da cena.
@@ -63,6 +78,9 @@ Se quiser corrigir o português também, é decisão explícita do usuário, nã
 - **Rosto humano** é mais frágil que animal/criatura.
 - **Ação forte** (empurrar, alavanca) sai amenizada.
 - Sempre revisar as folhas de contato e relatar o que saiu torto.
+- **Clipe pode ficar `in_progress` além do teto de 45min** e não sair. Desde 2026-08-14 isso
+  **aborta a montagem** com a lista das cenas faltando, em vez de entregar um filme furado.
+  Rodar de novo retoma só o que falta.
 
 ## Pré-requisitos
 

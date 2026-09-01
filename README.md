@@ -103,7 +103,7 @@ curl -X POST https://apihub.agnes-ai.com/v1/videos \
 | **`seed`** | ✅ **existe no vídeo** (na imagem não!) · **`negative_prompt`** também |
 | `num_frames` | ≤ **441** (18,4s @24fps), regra **8n+1**; `seconds = num_frames / frame_rate` |
 | `mode: "ti2vid"` | ✅ imagem única + movimento sutil (uma âncora, deriva menos que A→B) |
-| **RATE LIMIT — criação** | **5 requisições/min** no `POST /v1/videos` → HTTP 429 |
+| **RATE LIMIT — criação** | **6 requisições/min** no `POST /v1/videos` → HTTP 429 (medido 2026-08-31: erra no 7º; a mensagem da API diz `allows 6 requests per 1 minute(s)`). Vale para **todos** os modelos de vídeo — o 2.5-flash tem o mesmo teto |
 | **RATE LIMIT — status** | ⚠️ o **polling** (`GET /agnesapi`) TAMBÉM é limitado (`video status query rate limit`). Espaçar as consultas (≥15s), não só a criação |
 | Keyframes por **base64** | ✅ funciona — a doc diz que exige URL pública, **mentira** |
 | ⚠️ `size` da resposta **mente** | pede `1312x736`, entrega **1280x704** (nem 16:9 exato). **Medir com ffprobe** |
@@ -130,15 +130,35 @@ A técnica ataca os dois:
   mata o defeito de imagem no corte. (Testado: 3 planos da "noite gelada", figurino idêntico.)
 
 Por que está **parada**: multiplica as chamadas de vídeo (1 clipe/cena → 3–4), e os **três** rate
-limits de vídeo (criação 5/min + status query) tornam o forno longo demais hoje. Quando os limites
+limits de vídeo (criação 6/min + status query) tornam o forno longo demais hoje. Quando os limites
 afrouxarem — ou num modelo sem esse gargalo — vira o default. Comprovado num teste de uma cena
 (morph de 13s × 4 planos curtos cortados, mesma narração): o figurino se manteve e o movimento
 ficou mais limpo.
 
 ## Modelos disponíveis (`GET /v1/models`)
 
-`agnes-image-2.1-flash` · `agnes-image-2.0-flash` · `agnes-2.0-flash` (texto/visão) ·
-`agnes-1.5-flash` · `agnes-video-v2.0`.
+Listagem ao vivo em **2026-08-31** (11 modelos):
+
+| Tipo | Modelos |
+|---|---|
+| Imagem | `agnes-image-2.5-flash` · `agnes-image-2.1-flash` (em uso) · `agnes-image-2.0-flash` |
+| Vídeo | `agnes-video-2.5` ⛔ · `agnes-video-2.5-flash` ✅ · `agnes-video-v2.0` (em uso) |
+| Texto/visão | `agnes-2.5-pro` · `agnes-2.5-pro-beta` · `agnes-2.5-pro-alpha` · `agnes-2.5-flash` · `agnes-2.0-flash` |
+
+⛔ **`agnes-video-2.5` aparece na lista mas NÃO é acessível nesta assinatura**:
+`503 — No available channel for model agnes-video-2.5 under group TokenPlan (distributor)`.
+`agnes-video-2.5-flash` está liberado (passa o limitador normalmente).
+
+O pipeline segue em `agnes-video-v2.0` / `agnes-image-2.1-flash` — o 2.5-flash ainda não foi
+comparado em qualidade. Aparecer no `/v1/models` não garante canal no plano: testar antes de trocar.
+
+### Cota / limites da assinatura — não são consultáveis (verificado 2026-08-31)
+
+`/v1/rate_limits`, `/v1/limits` e `/v1/me` → **404**. `/v1/models/<id>` → `model_not_found`
+(só a listagem existe). `/v1/dashboard/billing/subscription` devolve placeholder
+(`hard_limit_usd: 100000000`, `total_usage: 0`, `has_payment_method: true`, `access_until: 0`),
+igual para qualquer plano. Não há headers `X-RateLimit-*`: **o 429 é o único aviso**.
+Limite só se mede empiricamente.
 
 ## Riscos
 
@@ -156,7 +176,7 @@ fornecedor único crítico.
 2. **Cenas** — 2 imagens por cena (A abre / B fecha), ≤ 2 refs, `size` em pixels.
 3. **Revisão de dicção** (`revisao.py`) — número/moeda por extenso etc. antes do TTS, preservando o texto original.
 4. **Narração** — inemavox `bella` (chatterbox) local; a fala define a duração de cada clipe.
-5. **Clipes** — keyframe A→B, `num_frames` casado com a narração, throttle de 5/min.
+5. **Clipes** — keyframe A→B, `num_frames` casado com a narração, throttle de 6/min (o pipeline pausa a cada 4 — conservador de propósito).
 6. **Montagem** — concatena, casa áudio/vídeo sem cortar fala, comprime, envia ao Telegram.
 
 ## Pré-requisitos
@@ -165,12 +185,15 @@ fornecedor único crítico.
 - inemavox em `localhost:8010` (narração) · `ffmpeg`/`ffprobe` no PATH
 - openpcbot `.env` com `TELEGRAM_BOT_TOKEN` + `ALLOWED_CHAT_ID` (envio)
 
+Mapa completo (endpoints, credenciais, limites, falhas conhecidas): **[`dependencias.md`](dependencias.md)**.
+
 ## Estrutura
 
 ```
 pipeline.py            motor (imagem, vídeo, TTS, montagem, envio)
 rodar.py               orquestra uma história de ponta a ponta (idempotente)
 revisao.py             revisão de dicção antes do TTS
+dependencias.md        o que o projeto consome (Agnes, inemavox, ffmpeg, Telegram)
 historias/exemplo.py   molde comentado — copie para criar a sua
 skills/                videos-agnes e imagens-agnes (as skills do projeto)
 ```

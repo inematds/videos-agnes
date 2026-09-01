@@ -157,7 +157,7 @@
   </div>
   <div class="grid g3" style="margin-top:26px">
     <div class="card"><h3>🖼️ Imagens</h3><p>text2img e img2img com até 2 referências (teto medido — mais que isso satura). Proporção 16:9 via pixels explícitos.</p></div>
-    <div class="card"><h3>🎞️ Vídeo</h3><p>Modo keyframes: cada cena interpola da imagem A para a B. Duração pela regra 8n+1, respeitando o rate limit de 5/min.</p></div>
+    <div class="card"><h3>🎞️ Vídeo</h3><p>Modo keyframes: cada cena interpola da imagem A para a B. Duração pela regra 8n+1, respeitando o rate limit de 6/min.</p></div>
     <div class="card"><h3>🔊 Áudio</h3><p>Narração TTS local (inemavox, voz bella/chatterbox), com padding para casar fala e imagem sem cortar palavra.</p></div>
   </div>
 </div></section>
@@ -231,7 +231,7 @@ AGNES_API_KEY=<span class="s">sua-chave</span></pre></div>
     <div class="card"><h3>📐 Tamanho em pixels</h3><p>Em img2img o <code>ratio</code> é ignorado (vira quadrado). Peça <code>size:"1312x736"</code> em pixels, sem <code>ratio</code>, para manter 16:9.</p></div>
     <div class="card"><h3>🔁 Retry sempre</h3><p>~34% das chamadas voltam 503. O retry com backoff recupera quase todas — não é opcional.</p></div>
     <div class="card"><h3>🐾 Nada de pose frontal</h3><p>Frontal simétrica duplica cauda/cabeça. Use perfil ou três-quartos e peça "exactly one" no positivo (nunca "no two", que vira atrator).</p></div>
-    <div class="card"><h3>🎬 Vídeo: 5/min e o size mente</h3><p>O vídeo tem rate limit real de 5 requisições/min (429) e tem <code>seed</code> (a imagem não). O tamanho da resposta mente: pede 1312×736, entrega 1280×704 — meça com ffprobe.</p></div>
+    <div class="card"><h3>🎬 Vídeo: 6/min e o size mente</h3><p>O vídeo tem rate limit real de 6 requisições/min (429) e tem <code>seed</code> (a imagem não). O tamanho da resposta mente: pede 1312×736, entrega 1280×704 — meça com ffprobe.</p></div>
   </div>
 </div></section>
 

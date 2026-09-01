@@ -86,8 +86,8 @@ for c in sorted(H.NARRACAO):
         print(f'  [clipe {c:02d}] sem keyframe', flush=True)
         continue
     fr = P.frames_para(S['dur'].get(str(c), 3.4))
-    if feitos and feitos % 4 == 0:      # rate limit REAL do video: 5/min
-        print('  ... pausa 65s (rate limit 5/min)', flush=True)
+    if feitos and feitos % 4 == 0:      # rate limit REAL do video: 6/min (pausa conservadora)
+        print('  ... pausa 65s (rate limit 6/min)', flush=True)
         time.sleep(65)
     P.gerar_video(mp4, P.keyframe(f'{D}/{a}.png', S['urls'].get(a)),
                   P.keyframe(f'{D}/{b}.png', S['urls'].get(b)),
@@ -97,6 +97,8 @@ for c in sorted(H.NARRACAO):
 # ---------- 5. MONTAGEM + ENVIO ----------
 print('\n[5/5] MONTAGEM', flush=True)
 filme = P.montar(D, max(H.NARRACAO), f'filme-{nome}')
-if filme:
-    P.enviar_telegram(filme, H.LEGENDA)
+if not filme:
+    print(f'\nINCOMPLETO — nada enviado. `python3 rodar.py {nome}` retoma de onde parou.', flush=True)
+    sys.exit(1)
+P.enviar_telegram(filme, H.LEGENDA)
 print('\nFIM', flush=True)

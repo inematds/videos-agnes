@@ -16,9 +16,10 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
     - ancora-mae em text2img; demais vistas DERIVADAS dela por img2img
       (gerar em paralelo produz personagens diferentes)
 
-  video (agnes-video-v2.0)
+  video (agnes-video-v2.0; existe 2.5-flash, nao adotado)
     - mode "keyframes" com [A, B]; base64 funciona (a doc diz que nao)
-    - RATE LIMIT REAL: 5 req/min -> HTTP 429. Unico limite real da API
+    - RATE LIMIT REAL: 6 req/min -> HTTP 429. Unico limite real da API
+      (medido 2026-08-31; mesmo teto em agnes-video-2.5-flash)
     - `seed` existe aqui (na imagem nao)
     - num_frames <= 441 (18.4s @24fps), regra 8n+1
     - o `size` da resposta MENTE: pede 1312x736, entrega 1280x704 -> conferir com ffprobe
@@ -37,6 +38,7 @@ VID_API = 'https://apihub.agnes-ai.com/v1/videos'
 VID_GET = 'https://apihub.agnes-ai.com/agnesapi?video_id='
 VOX = 'http://localhost:8010'
 FPS, SEED = 24, 12345
+ESPERA_VIDEO = 2700   # teto de polling por clipe (45min). 30min deixava job lento virar buraco no filme
 
 STYLE = ('Pixar-style 3D animated feature film render, soft cinematic lighting, warm color palette, '
          'shallow depth of field, restrained natural saturation')
@@ -108,30 +110,36 @@ def gerar_video(dest, kf_a, kf_b, prompt, frames, tentativas=4):
         except urllib.error.HTTPError as e:
             msg = e.read()[:120].decode(errors='ignore')
             print(f'    HTTP {e.code}: {msg}', flush=True)
-            time.sleep(70 if e.code == 429 else 6 * t)   # 429 = rate limit 5/min
+            time.sleep(70 if e.code == 429 else 6 * t)   # 429 = rate limit 6/min
         except Exception as e:
             print(f'    erro: {str(e)[:80]}', flush=True)
             time.sleep(6 * t)
+    nome = os.path.basename(dest)
     if not vid:
+        print(f'  ❌ [{nome}] a API nao aceitou o job apos {tentativas} tentativas', flush=True)
         return None
     t0 = time.time()
-    while time.time() - t0 < 1800:
+    while time.time() - t0 < ESPERA_VIDEO:
         try:
             d = _get(VID_GET + vid)
             st = d.get('status')
             if st == 'completed':
                 u = d.get('url') or (d.get('data') or [{}])[0].get('url') or d.get('video_url')
                 if not u:
+                    print(f'  ❌ [{nome}] completou sem URL: {json.dumps(d)[:150]}', flush=True)
                     return None
                 open(dest, 'wb').write(urllib.request.urlopen(u, timeout=300).read())
-                print(f'  [{os.path.basename(dest)}] {dur(dest):.1f}s', flush=True)
+                print(f'  [{nome}] {dur(dest):.1f}s', flush=True)
                 return dest
             if st == 'failed':
-                print(f'    falhou: {json.dumps(d)[:150]}', flush=True)
+                print(f'  ❌ [{nome}] falhou: {json.dumps(d)[:150]}', flush=True)
                 return None
         except Exception:
             pass
         time.sleep(12)
+    # Falha SILENCIOSA historica: o job fica in_progress alem do teto e o clipe some do filme.
+    print(f'  ❌ [{nome}] timeout de {ESPERA_VIDEO//60}min ainda em processamento '
+          f'(video_id={vid}) — rode de novo para retomar so este clipe', flush=True)
     return None
 
 
@@ -181,8 +189,26 @@ def _sh(cmd):
     return r.returncode == 0
 
 
-def montar(D, n_cenas, saida_base):
-    """Concatena os clipes; casa cada fala com seu clipe (padding, nunca corta fala)."""
+def montar(D, n_cenas, saida_base, parcial=False):
+    """Concatena os clipes; casa cada fala com seu clipe (padding, nunca corta fala).
+
+    ABORTA se faltar clipe: um furo no meio nao pode virar filme entregue como se
+    estivesse inteiro (foi o que aconteceu com luna2 — 1 de 4 cenas foi pro Telegram).
+    `parcial=True` monta assim mesmo, para inspecao manual.
+    """
+    faltando = [c for c in range(1, n_cenas + 1)
+                if not os.path.exists(f'{D}/video/clipe-{c:02d}.mp4')]
+    if faltando:
+        alvo = f'{D}/{saida_base}.mp4'
+        print(f'  ❌ MONTAGEM ABORTADA — faltam {len(faltando)}/{n_cenas} clipes: '
+              + ', '.join(f'cena {c:02d}' for c in faltando), flush=True)
+        if not parcial:
+            print('     rode de novo para gerar so o que falta (o pipeline e idempotente).', flush=True)
+            if os.path.exists(alvo):
+                print(f'     {saida_base}.mp4 anterior mantido intacto — NAO foi sobrescrito.', flush=True)
+            return None
+        print('     parcial=True: montando mesmo assim (nao entregar como final).', flush=True)
+
     T = f'{D}/tmp'
     os.makedirs(T, exist_ok=True)
     partes = []
@@ -223,7 +249,7 @@ def montar(D, n_cenas, saida_base):
 def enviar_telegram(path, legenda):
     import uuid
     env = {}
-    for line in open('/home/nmaldaner/projetos/openpcbot/.env'):
+    for line in open('/home/nmaldaner/projetos/openpcbotv2/.env'):
         line = line.strip()
         if '=' in line and not line.startswith('#'):
             k, v = line.split('=', 1)
