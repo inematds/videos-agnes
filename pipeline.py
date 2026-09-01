@@ -21,7 +21,8 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
     - RATE LIMIT REAL: 6 req/min -> HTTP 429. Unico limite real da API
       (medido 2026-08-31; mesmo teto em agnes-video-2.5-flash)
     - `seed` existe aqui (na imagem nao)
-    - num_frames <= 441 (18.4s @24fps), regra 8n+1
+    - num_frames: regra 8n+1, teto POR RESOLUCAO (medido 2026-08-31):
+      480p=961, 720p=481 (20.0s @24fps), 1080p=241. Proporcao nao altera.
     - o `size` da resposta MENTE: pede 1312x736, entrega 1280x704 -> conferir com ffprobe
 
   montagem
@@ -177,9 +178,9 @@ def narrar(dest, texto, voz='bella', ref_dir='/home/nmaldaner/projetos/timesmkt3
 
 
 def frames_para(segundos):
-    """8n+1, teto 441 (18.4s @24fps)."""
+    """8n+1, teto 481 em 720p (20.0s @24fps). 480p=961, 1080p=241."""
     n = round((segundos * FPS - 1) / 8)
-    return max(9, min(441, int(n * 8 + 1)))
+    return max(9, min(481, int(n * 8 + 1)))
 
 
 def _sh(cmd):

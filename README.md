@@ -101,13 +101,31 @@ curl -X POST https://apihub.agnes-ai.com/v1/videos \
 | `mode: "keyframes"` com par A→B | ✅ interpola de verdade, personagem consistente no movimento |
 | 3+ keyframes | ✅ aceito |
 | **`seed`** | ✅ **existe no vídeo** (na imagem não!) · **`negative_prompt`** também |
-| `num_frames` | ≤ **441** (18,4s @24fps), regra **8n+1**; `seconds = num_frames / frame_rate` |
+| `num_frames` | regra **8n+1** (1, 9, 17…); teto **depende da resolução** (medido 2026-08-31, ver abaixo); `seconds = num_frames / frame_rate` |
 | `mode: "ti2vid"` | ✅ imagem única + movimento sutil (uma âncora, deriva menos que A→B) |
 | **RATE LIMIT — criação** | **6 requisições/min** no `POST /v1/videos` → HTTP 429 (medido 2026-08-31: erra no 7º; a mensagem da API diz `allows 6 requests per 1 minute(s)`). Vale para **todos** os modelos de vídeo — o 2.5-flash tem o mesmo teto |
 | **RATE LIMIT — status** | ⚠️ o **polling** (`GET /agnesapi`) TAMBÉM é limitado (`video status query rate limit`). Espaçar as consultas (≥15s), não só a criação |
 | Keyframes por **base64** | ✅ funciona — a doc diz que exige URL pública, **mentira** |
 | ⚠️ `size` da resposta **mente** | pede `1312x736`, entrega **1280x704** (nem 16:9 exato). **Medir com ffprobe** |
 | Tempo | 19–50s por clipe de ~3,4s |
+
+### Limite de duração do clipe (medido 2026-08-31)
+
+O teto **não é 441** como estava documentado — é **481 em 720p**, e varia com a resolução.
+A própria API devolve a tabela no erro 400:
+
+| Resolução | Máx `num_frames` | Duração @24fps |
+|---|---|---|
+| **480p** (qualquer proporção) | **961** | 40,0s |
+| **720p** (qualquer proporção) | **481** | 20,0s |
+| **1080p** (qualquer proporção) | **241** | 10,0s |
+
+A proporção (16:9, 4:3, 1:1, 3:4, 9:16) **não altera** o teto — só a resolução altera.
+O limite é em **frames**, não em segundos: `seconds = num_frames / frame_rate`.
+Fora da regra 8n+1 → 400 (`num_frames must equal 8 * n + 1`); acima do teto → 400 com a tabela.
+
+O pipeline usa 720p (`1312x736` → entrega `1280x704`) e limitava em 441 por engano:
+**perdia ~1,7s por clipe** (441 → 481 frames = 18,4s → 20,0s).
 
 ## Técnica multi-plano (FUTURO — parada por causa dos rate limits)
 

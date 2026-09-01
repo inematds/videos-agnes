@@ -100,7 +100,7 @@ TTS da narração (`narrar`, `pipeline.py:145`). Engine `chatterbox`, voz defaul
 
 | Limite | Valor | Onde |
 |---|---|---|
-| Frames por clipe | ≤ 441 (18,4s @24fps), regra 8n+1 | `frames_para` |
+| Frames por clipe | 8n+1; teto por resolução: 480p=961, **720p=481** (20,0s @24fps), 1080p=241 | `frames_para` |
 | Polling de clipe | 45 min (`ESPERA_VIDEO`) | `gerar_video` |
 | Polling de TTS | 15 min | `narrar` |
 | Referências por imagem | 2 úteis, 10 MB cada | regra da API |
