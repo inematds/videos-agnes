@@ -206,6 +206,20 @@ pouco do `seconds` pedido.
 (passo de 1/24s) e passam de 12s com frequência; o 2.5-flash trava em 12s e só segundos inteiros.
 O 2.5-flash é candidato para a técnica multi-plano (planos de 3–4s), onde o teto não incomoda.
 
+### Cota diária de vídeo — o que é fato, o que está em aberto
+
+| Afirmação | Fonte | Status |
+|---|---|---|
+| **500 s/dia de vídeo no `agnes-video-v2.0`** | **painel da conta** (visto pelo usuário, 2026-09-01) | ✅ confirmado pelo painel — **não** pela API |
+| Cota diária do `agnes-video-2.5-flash` | — | 🔬 **em teste** (medição empírica em andamento, 2026-09-01). Não assumir que é a mesma do 2.0 |
+| "200 s/dia" | terceiros / interface promocional | ⚠️ **não confirmado** aqui |
+| "2.5 Flash grátis temporariamente em 720p" | doc de terceiro (`video.lichuanyang.top`) | ⚠️ plausível — bate com o fato de que aqui **só 720P é aceito** e o custo é US$ 0, mas a palavra "temporariamente" não tem confirmação nossa |
+| "Video 2.5 lançado em 2026-08-27" | doc de terceiro | ⚠️ não verificável pela API (o `created` do `/v1/models` é fixo/falso: 1626777600 para todos) |
+| 1080p / 2K no 2.5 "na versão paga" | doc de terceiro | ❌ **contradito pela API nesta conta**: pedir 2K → 400 `size must be 720P` |
+
+**Regra:** a API **não** expõe cota (ver logo abaixo). Tudo que for número de cota vem do painel ou
+de medição empírica — anotar sempre a fonte e a data, porque muda.
+
 ### Cota / limites da assinatura — não são consultáveis (verificado 2026-08-31)
 
 `/v1/rate_limits`, `/v1/limits` e `/v1/me` → **404**. `/v1/models/<id>` → `model_not_found`
