@@ -29,7 +29,7 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
     - narracao PRIMEIRO: a duracao da fala define os seconds de cada clipe
     - fala > 12 s: o clipe fica em 12 s e a montagem congela o ultimo quadro (tpad)
 """
-import base64, json, os, subprocess, time, urllib.request, urllib.error
+import base64, json, math, os, subprocess, time, urllib.request, urllib.error
 
 KEY = None
 for line in open('/home/nmaldaner/projetos/agnes-nei/.env'):
@@ -100,7 +100,7 @@ def gerar_imagem(dest, prompt, refs=None, tentativas=5):
 
 def segundos_25(frames):
     """frames (24fps) -> seconds string 4..12 aceito pelo 2.5-flash."""
-    return str(int(min(12, max(4, -(-frames // FPS)))))   # arredonda pra cima: clipe >= fala
+    return str(int(min(12, max(4, math.ceil(frames / FPS - 0.1)))))   # pra cima (clipe >= fala), com folga de 0,1 s
 
 
 def gerar_video(dest, kf_a, kf_b, prompt, frames, tentativas=6):
