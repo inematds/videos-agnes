@@ -91,6 +91,19 @@
   .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:.3em .8em;font-size:.78rem;color:var(--mut);margin:0 4px}
   .warn{background:rgba(226,162,59,.08);border:1px solid rgba(226,162,59,.3);border-radius:12px;padding:14px 18px;color:var(--mut);font-size:.9rem;margin-top:18px}
   .warn b{color:var(--amb)}
+  /* celular: colunas de grid encolhem (código rola dentro do <pre>) e o menu cabe em 360 px */
+  .grid>*,.step>*,.ex>*,.hero .wrap>*{min-width:0}
+  .step{grid-template-columns:46px minmax(0,1fr)}
+  @media(max-width:1000px){nav .sep,nav .clubpro{display:none} nav .links{gap:14px}}
+  @media(max-width:560px){
+    nav .wrap{gap:12px;padding:0 14px}
+    nav .sep,nav .clubpro{display:none}
+    nav .links{gap:10px}
+    .wrap{padding:0 16px}
+    .hero .wrap{padding:40px 16px}
+    .hero .glow{width:100%;inset:-40% 0 auto auto}
+    .phase .tag{flex-basis:70px}
+  }
 </style>
 </head>
 <body>
