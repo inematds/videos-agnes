@@ -27,6 +27,13 @@ O campo `created` é **falso** (`1626777600` para todos) — não serve para sab
 
 ## 2. Vídeo
 
+> ⛔ **2026-10-13:** `agnes-video-v2.0` → `503 No available channel for model agnes-video-v2.0 under group
+> TokenPlan (distributor)` e fora do `/v1/models`. Só existe o `agnes-video-2.5-flash`. Medido no mesmo dia
+> com o 2.5-flash `mode:"keyframe"` + `first_frame` (e `last_frame`) em base64, `seconds:"8"`,
+> `aspect_ratio:"1:1"`: 2 clipes OK, **704×704, 8,0 s**; ~25 min do POST ao `completed` (progress 10% aos
+> 20 min); 3× `503 video_queue_full` antes de aceitar. Listagem: `agnes-video-2.5-flash`, `agnes-3.0-flash`,
+> `agnes-image-2.1-flash`, `agnes-image-2.0-flash`, `agnes-2.5-flash`, `agnes-image-2.5-flash`.
+
 ### 2.1 `agnes-video-v2.0` (em uso no pipeline)
 
 Campos: `num_frames` (8n+1), `frame_rate`, `width`/`height`, `seed`, `negative_prompt`,

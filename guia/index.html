@@ -136,7 +136,7 @@
   <h2>Da história ao MP4, sem editar nada à mão</h2>
   <p class="sub">Um pipeline que lê o conto, desenha os personagens, gera duas imagens por cena (início e fim), anima cada par em vídeo, narra em português e monta o filme. Duas skills acompanham o projeto: <b>videos-agnes</b> (história → filme) e <b>imagens-agnes</b> (imagem avulsa).</p>
   <div class="grid g3">
-    <div class="card"><h3>💸 Custo US$ 0</h3><p>Imagens (agnes-image-2.1-flash) e vídeo (agnes-video-v2.0) pela API Agnes AI, sem cobrança por geração. Narração roda local.</p></div>
+    <div class="card"><h3>💸 Custo US$ 0</h3><p>Imagens (agnes-image-2.1-flash) e vídeo (agnes-video-2.5-flash; o v2.0 saiu da API em out/2026) pela API Agnes AI, sem cobrança por geração. Narração roda local.</p></div>
     <div class="card"><h3>🎭 Personagem consistente</h3><p>Model sheet por personagem: uma âncora-mãe e as demais vistas derivadas dela, para o mesmo rosto atravessar as cenas.</p></div>
     <div class="card"><h3>🗣️ Narração casada</h3><p>A voz é gerada antes; cada clipe dura exatamente a fala da cena. Revisão de dicção corrige número e moeda por extenso antes do TTS.</p></div>
   </div>
@@ -219,6 +219,13 @@ AGNES_API_KEY=<span class="s">sua-chave</span></pre></div>
     <figure><img src="assets/ex1.jpg" alt="Esquilo numa floresta ao amanhecer"><figcaption>"O Esquilo que Encontrou um Amigo" — cena do rio, estilo aquarela/3D.</figcaption></figure>
     <figure><img src="assets/ex2.jpg" alt="Três crianças brincando num quintal"><figcaption>"O Mistério do Alien" — os três amigos, mantidos consistentes por âncora de grupo.</figcaption></figure>
   </div>
+  <h3 style="margin-top:34px">Novo: uma imagem pronta vira vídeo de 15 s</h3>
+  <p class="sub">Arte de anúncio do INEMA.CLUB (1:1) animada pelo <code>agnes-video-2.5-flash</code>: 2 clipes de 8 s que começam e terminam na própria imagem, emendados e cortados em 15 s. O texto da arte não deforma.</p>
+  <div class="ex">
+    <figure><video src="assets/exemplo-imagem-video-15s.mp4" poster="assets/exemplo-imagem-video-poster.jpg" controls muted loop playsinline preload="none" style="width:100%;border-radius:12px"></video><figcaption>O vídeo final (15 s, 720×720, sem áudio).</figcaption></figure>
+    <figure><img src="assets/exemplo-imagem-video.jpg" alt="Folha de contato do vídeo, um quadro a cada 2 segundos"><figcaption>Folha de contato: um quadro a cada 2 s — texto, logo e celular firmes do começo ao fim.</figcaption></figure>
+  </div>
+  <pre style="margin-top:14px"><code>python3 imagem_video.py arte.png --segundos 15 --proporcao 1:1 --saida ~/projetos/output/videos-agnes/minha-arte</code></pre>
 </div></section>
 
 <section id="dicas"><div class="wrap">
@@ -231,7 +238,7 @@ AGNES_API_KEY=<span class="s">sua-chave</span></pre></div>
     <div class="card"><h3>📐 Tamanho em pixels</h3><p>Em img2img o <code>ratio</code> é ignorado (vira quadrado). Peça <code>size:"1312x736"</code> em pixels, sem <code>ratio</code>, para manter 16:9.</p></div>
     <div class="card"><h3>🔁 Retry sempre</h3><p>~34% das chamadas voltam 503. O retry com backoff recupera quase todas — não é opcional.</p></div>
     <div class="card"><h3>🐾 Nada de pose frontal</h3><p>Frontal simétrica duplica cauda/cabeça. Use perfil ou três-quartos e peça "exactly one" no positivo (nunca "no two", que vira atrator).</p></div>
-    <div class="card"><h3>🎬 Vídeo: 6/min e o size mente</h3><p>O vídeo tem rate limit real de 6 requisições/min (429) e tem <code>seed</code> (a imagem não). O tamanho da resposta mente: pede 1312×736, entrega 1280×704 — meça com ffprobe.</p></div>
+    <div class="card"><h3>🎬 Vídeo: só o 2.5-flash, até 12 s</h3><p>O <code>agnes-video-v2.0</code> saiu da API (503 "no available channel", out/2026). O 2.5-flash usa <code>mode:"keyframe"</code> com <code>first_frame</code>/<code>last_frame</code> e <code>seconds</code> de 4 a 12. Limite de 6 pedidos/min, fila cheia (503) frequente e ~25 min por clipe. Entrega 1280×704 (16:9) ou 704×704 (1:1) — meça com ffprobe.</p></div>
   </div>
 </div></section>
 
@@ -241,6 +248,7 @@ AGNES_API_KEY=<span class="s">sua-chave</span></pre></div>
   <p class="sub">O pipeline nasceu medindo a API na prática — o que a documentação promete versus o que ela entrega.</p>
   <div class="phase"><div class="tag">Feito</div><div class="d"><strong>Pipeline ponta a ponta</strong><span>História → filme narrado, model sheet, revisão de dicção, montagem casada com a fala, envio ao Telegram.</span></div></div>
   <div class="phase"><div class="tag">Feito</div><div class="d"><strong>Duas skills</strong><span>videos-agnes (filme) e imagens-agnes (imagem avulsa), com todas as regras medidas embutidas.</span></div></div>
+  <div class="phase"><div class="tag">Feito</div><div class="d"><strong>Imagem → vídeo</strong><span><code>imagem_video.py</code>: uma arte pronta vira vídeo de qualquer duração em clipes de até 12 s com emenda invisível (out/2026). Pipeline migrado para o agnes-video-2.5-flash.</span></div></div>
   <div class="phase"><div class="tag">A seguir</div><div class="d"><strong>Identidade mais firme</strong><span>Reduzir a deriva de personagem entre cenas e melhorar rostos humanos e ação forte.</span></div></div>
   <div class="phase"><div class="tag">A seguir</div><div class="d"><strong>Versão reel</strong><span>Saída 9:16 com legendas e trilha, a partir do mesmo filme.</span></div></div>
   <div class="phase"><div class="tag">Futuro</div><div class="d"><strong>Multi-plano</strong><span>Cada cena em vários planos curtos com corte + referência encadeada (mais limpo que o morph longo). Parado pelos rate limits de vídeo; independente de modelo.</span></div></div>

@@ -30,6 +30,18 @@ erra**, nunca o português:
 Toda mudança é **registrada e impressa** (diff em `estado.json['revisao']`) — nada é editado em silêncio.
 Se quiser corrigir o português também, é decisão explícita do usuário, não o default.
 
+## Imagem pronta → vídeo (sem história)
+
+Arte/anúncio/foto que só precisa ganhar movimento ("faz um vídeo de 15 s com esta imagem"):
+
+```bash
+cd ~/projetos/videos-agnes && python3 imagem_video.py <img> --segundos 15 --proporcao 1:1 \
+    --saida ~/projetos/output/videos-agnes/<nome> [--prompt "movimento em inglês"]
+```
+
+Gera clipes de até 12 s que começam e terminam na imagem (emenda invisível), corta na duração e
+faz `contato.jpg`. Conferir na folha se o texto da arte não deformou. Exemplo: `exemplos/imagem-para-video/`.
+
 ## Para uma história NOVA
 
 1. Ler a história e o elenco. Traduzir personagens/cenas para prompts **em INGLÊS**.
@@ -67,8 +79,10 @@ com o inemavox por HTTP, com o ffmpeg e com o Telegram. Ver `dependencias.md`.
 - **Model sheet: derivar, não gerar em paralelo.** Mãe em text2img, resto por img2img.
 - **Nada de pose frontal simétrica** e sempre `exactly one ... one head` (positivo, nunca "no two").
 - **Descritor de estilo só estético** (nada de "eyes"/"hair"/"fur" — injeta personagem no cenário).
-- **Vídeo:** rate limit REAL 6 req/min (HTTP 429, medido 2026-08-31; mesmo teto no `agnes-video-2.5-flash`, que tem schema proprio: `mode`+`seconds` 4-12, so 720P) — o pipeline já pausa. Base64 nos keyframes
-  funciona. `num_frames` é 8n+1 com teto POR RESOLUÇÃO (medido 2026-08-31): 480p=961, **720p=481** (20,0s @24fps), 1080p=241 — a proporção não muda o teto. O `size` da resposta MENTE (mede com ffprobe).
+- **Vídeo = `agnes-video-2.5-flash` (o `agnes-video-v2.0` SAIU da API em 2026-10-13: 503 "No available channel", fora do `/v1/models`).**
+  `mode:"keyframe"` + `first_frame`/`last_frame` (base64 funciona), `seconds` STRING 4–12 (teto 12 s por clipe),
+  `size:"720P"` + `aspect_ratio`; poll em `GET /v1/videos/<id>`. Rate limit 6 req/min (429; 400 conta).
+  `503 video_queue_full` frequente e fila lenta (~25 min/clipe) — o pipeline repete. O tamanho entregue difere do pedido (1280×704 em 16:9, 704×704 em 1:1): medir com ffprobe.
 - **~34% de 503** na geração — retry com backoff já embutido.
 - **Narração define a duração:** gera a voz primeiro, cada clipe dura a fala da cena.
 

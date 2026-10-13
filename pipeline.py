@@ -16,18 +16,18 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
     - ancora-mae em text2img; demais vistas DERIVADAS dela por img2img
       (gerar em paralelo produz personagens diferentes)
 
-  video (agnes-video-v2.0; existe 2.5-flash, nao adotado — schema incompativel:
-         seconds 4-12 em vez de num_frames, so 720P neste plano; ver README)
-    - mode "keyframes" com [A, B]; base64 funciona (a doc diz que nao)
-    - RATE LIMIT REAL: 6 req/min -> HTTP 429. Unico limite real da API
-      (medido 2026-08-31; mesmo teto em agnes-video-2.5-flash)
-    - `seed` existe aqui (na imagem nao)
-    - num_frames: regra 8n+1, teto POR RESOLUCAO (medido 2026-08-31):
-      480p=961, 720p=481 (20.0s @24fps), 1080p=241. Proporcao nao altera.
-    - o `size` da resposta MENTE: pede 1312x736, entrega 1280x704 -> conferir com ffprobe
+  video (agnes-video-2.5-flash desde 2026-10-13: o agnes-video-v2.0 SAIU do /v1/models
+         e responde 503 "No available channel" — nao existe mais para esta chave)
+    - mode "keyframe" com first_frame/last_frame (base64 data URI funciona)
+    - seconds STRING "4".."12" (teto 12 s por clipe); num_frames/width/height/frame_rate PROIBIDOS
+    - size "720P" + aspect_ratio ("16:9", "1:1", "9:16"...); entrega 1280x704 em 16:9, 704x704 em 1:1
+    - poll em GET /v1/videos/<id>; url em metadata.url
+    - RATE LIMIT REAL: 6 req/min -> HTTP 429; 400 tambem conta no limite
+    - 503 video_queue_full e comum -> esperar e repetir; fila lenta (~25 min por clipe medido 2026-10-13)
 
   montagem
-    - narracao PRIMEIRO: a duracao da fala define num_frames de cada clipe
+    - narracao PRIMEIRO: a duracao da fala define os seconds de cada clipe
+    - fala > 12 s: o clipe fica em 12 s e a montagem congela o ultimo quadro (tpad)
 """
 import base64, json, os, subprocess, time, urllib.request, urllib.error
 
@@ -37,7 +37,9 @@ for line in open('/home/nmaldaner/projetos/agnes-nei/.env'):
         KEY = line.strip().split('=', 1)[1]
 IMG_API = 'https://apihub.agnes-ai.com/v1/images/generations'
 VID_API = 'https://apihub.agnes-ai.com/v1/videos'
-VID_GET = 'https://apihub.agnes-ai.com/agnesapi?video_id='
+VID_GET = 'https://apihub.agnes-ai.com/v1/videos/'   # 2.5: /v1/videos/<id> (o /agnesapi do v2.0 da 404)
+VIDEO_MODEL = 'agnes-video-2.5-flash'   # agnes-video-v2.0 saiu da API em 2026-10 (503 no channel)
+ASPECT = '16:9'
 VOX = 'http://localhost:8010'
 FPS, SEED = 24, 12345
 ESPERA_VIDEO = 2700   # teto de polling por clipe (45min). 30min deixava job lento virar buraco no filme
@@ -96,23 +98,29 @@ def gerar_imagem(dest, prompt, refs=None, tentativas=5):
     return None
 
 
-def gerar_video(dest, kf_a, kf_b, prompt, frames, tentativas=4):
-    body = {'model': 'agnes-video-v2.0',
+def segundos_25(frames):
+    """frames (24fps) -> seconds string 4..12 aceito pelo 2.5-flash."""
+    return str(int(min(12, max(4, -(-frames // FPS)))))   # arredonda pra cima: clipe >= fala
+
+
+def gerar_video(dest, kf_a, kf_b, prompt, frames, tentativas=6):
+    body = {'model': VIDEO_MODEL,
             'prompt': f'Smooth cinematic transition between the keyframes: {prompt}. '
                       f'Natural motion, consistent characters and style, cinematic camera.',
-            'num_frames': frames, 'frame_rate': FPS, 'seed': SEED,
-            'width': 1312, 'height': 736,
-            'extra_body': {'image': [kf_a, kf_b], 'mode': 'keyframes'}}
+            'mode': 'keyframe', 'seconds': segundos_25(frames), 'n': 1,
+            'size': '720P', 'aspect_ratio': ASPECT, 'first_frame': kf_a}
+    if kf_b:
+        body['last_frame'] = kf_b
     vid = None
     for t in range(1, tentativas + 1):
         try:
             d = _post(VID_API, body, timeout=300)
-            vid = d.get('video_id') or d.get('task_id') or d.get('id')
+            vid = d.get('id') or d.get('task_id') or d.get('video_id')
             break
         except urllib.error.HTTPError as e:
             msg = e.read()[:120].decode(errors='ignore')
             print(f'    HTTP {e.code}: {msg}', flush=True)
-            time.sleep(70 if e.code == 429 else 6 * t)   # 429 = rate limit 6/min
+            time.sleep(70 if e.code == 429 else 30 * t)   # 429 = rate limit 6/min; 503 = video_queue_full
         except Exception as e:
             print(f'    erro: {str(e)[:80]}', flush=True)
             time.sleep(6 * t)
@@ -126,7 +134,8 @@ def gerar_video(dest, kf_a, kf_b, prompt, frames, tentativas=4):
             d = _get(VID_GET + vid)
             st = d.get('status')
             if st == 'completed':
-                u = d.get('url') or (d.get('data') or [{}])[0].get('url') or d.get('video_url')
+                u = (d.get('video_url') or d.get('url') or (d.get('metadata') or {}).get('url')
+                     or (d.get('data') or [{}])[0].get('url'))
                 if not u:
                     print(f'  ❌ [{nome}] completou sem URL: {json.dumps(d)[:150]}', flush=True)
                     return None
@@ -179,9 +188,8 @@ def narrar(dest, texto, voz='bella', ref_dir='/home/nmaldaner/projetos/timesmkt3
 
 
 def frames_para(segundos):
-    """8n+1, teto 481 em 720p (20.0s @24fps). 480p=961, 1080p=241."""
-    n = round((segundos * FPS - 1) / 8)
-    return max(9, min(481, int(n * 8 + 1)))
+    """Frames @24fps para a duracao; o gerar_video converte em seconds 4..12 (teto do 2.5-flash)."""
+    return max(4 * FPS, min(12 * FPS, int(round(segundos * FPS))))
 
 
 def _sh(cmd):

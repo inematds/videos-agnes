@@ -9,7 +9,24 @@ Guia: https://inematds.github.io/videos-agnes/guia/ · Skills: `videos-agnes` (f
 python3 rodar.py exemplo          # gera o filme de exemplo (âncoras→cenas→narração→clipes→montagem→Telegram)
 cp historias/exemplo.py historias/minha.py   # e preencha
 python3 rodar.py minha
+
+# NOVO (2026-10-13): imagem pronta -> vídeo de N segundos
+python3 imagem_video.py arte.png --segundos 15 --proporcao 1:1 --saida ~/projetos/output/videos-agnes/x
 ```
+
+> ⛔ **2026-10-13: o `agnes-video-v2.0` saiu da API** — some do `/v1/models` e responde
+> `503 No available channel for model agnes-video-v2.0`. O único modelo de vídeo é o
+> **`agnes-video-2.5-flash`**, e o pipeline foi migrado para ele (`mode:"keyframe"`, `seconds` 4–12).
+> O que está abaixo sobre o v2.0 fica como histórico.
+
+## Exemplo: imagem → vídeo de 15 s (2026-10-13)
+
+Arte de anúncio do INEMA.CLUB (1:1) virou vídeo de 15 s — ver [`exemplos/imagem-para-video/`](exemplos/imagem-para-video/)
+e o vídeo no [guia](https://inematds.github.io/videos-agnes/guia/#exemplos).
+Como o 2.5-flash faz no máximo 12 s, o `imagem_video.py` gera clipes que **começam e terminam na própria
+imagem** (`first_frame` = `last_frame`), o último termina livre, e emenda tudo: a costura não aparece.
+Texto, logo e tela do celular ficaram firmes. Medido: ~25 min de fila por clipe, 3× `503 video_queue_full`
+antes de aceitar o 2º; saída 704×704 (1:1 pedido em 720P).
 
 ---
 
@@ -175,12 +192,16 @@ ficou mais limpo.
 > Todas as medições brutas (schemas, erros que revelaram os limites, testes A/B e o que **ainda
 > não** foi confirmado) estão em **[MODELOS.md](MODELOS.md)**.
 
-Listagem ao vivo em **2026-09-01** (7 modelos — a lista MUDA: em 2026-08-31 eram 11):
+Listagem ao vivo em **2026-10-13** (6 modelos): `agnes-video-2.5-flash`, `agnes-3.0-flash` (novo),
+`agnes-image-2.1-flash`, `agnes-image-2.0-flash`, `agnes-2.5-flash`, `agnes-image-2.5-flash`.
+**Sem `agnes-video-v2.0`** (503 no channel) e sem `agnes-2.0-flash`.
+
+Listagem anterior, **2026-09-01** (7 modelos — a lista MUDA: em 2026-08-31 eram 11):
 
 | Tipo | Modelos |
 |---|---|
 | Imagem | `agnes-image-2.5-flash` · `agnes-image-2.1-flash` (em uso) · `agnes-image-2.0-flash` |
-| Vídeo | `agnes-video-2.5-flash` ✅ · `agnes-video-v2.0` (em uso) |
+| Vídeo | `agnes-video-2.5-flash` ✅ (em uso desde 2026-10-13) · ~~`agnes-video-v2.0`~~ (saiu em 2026-10) |
 | Texto/visão | `agnes-2.5-flash` · `agnes-2.0-flash` |
 
 ⛔ **`agnes-video-2.5` (não-flash) sumiu da listagem em 2026-09-01** — e continua barrado se
@@ -222,9 +243,9 @@ pouco do `seconds` pedido.
 | A→B | `mode:"keyframes"` | `mode:"keyframe"` (`first_frame`/`last_frame`) |
 | Multimodal | — | aceita `audios` e `videos` como referência |
 
-**Por que o pipeline continua no v2.0:** os clipes são dimensionados pela narração via `num_frames`
-(passo de 1/24s) e passam de 12s com frequência; o 2.5-flash trava em 12s e só segundos inteiros.
-O 2.5-flash é candidato para a técnica multi-plano (planos de 3–4s), onde o teto não incomoda.
+**Até 2026-09 o pipeline ficava no v2.0** porque os clipes passavam de 12 s. **Desde 2026-10-13 o v2.0
+não existe mais** e o pipeline usa o 2.5-flash: `seconds` = duração da fala arredondada para cima
+(4–12); fala acima de 12 s congela o último quadro na montagem (`tpad`), sem cortar a fala.
 
 ### Cota diária de vídeo — o que é fato, o que está em aberto
 
@@ -264,7 +285,7 @@ fornecedor único crítico.
 2. **Cenas** — 2 imagens por cena (A abre / B fecha), ≤ 2 refs, `size` em pixels.
 3. **Revisão de dicção** (`revisao.py`) — número/moeda por extenso etc. antes do TTS, preservando o texto original.
 4. **Narração** — inemavox `bella` (chatterbox) local; a fala define a duração de cada clipe.
-5. **Clipes** — keyframe A→B, `num_frames` casado com a narração, throttle de 6/min (o pipeline pausa a cada 4 — conservador de propósito).
+5. **Clipes** — keyframe A→B (`agnes-video-2.5-flash`, `first_frame`/`last_frame`), `seconds` casado com a narração (teto 12 s), throttle de 6/min (o pipeline pausa a cada 4 — conservador de propósito).
 6. **Montagem** — concatena, casa áudio/vídeo sem cortar fala, comprime, envia ao Telegram.
 
 ## Pré-requisitos
