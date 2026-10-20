@@ -31,8 +31,18 @@ Encapsula TUDO que foi aprendido em 2026-07-17 (ver ~/projetos/agnes-nei/NOTAS-A
 """
 import base64, json, math, os, subprocess, time, urllib.request, urllib.error
 
-KEY = None
-for line in open('/home/nmaldaner/projetos/agnes-nei/.env'):
+def _acha_env():
+    """AGNES_ENV, ou ~/projetos/agnes-nei/.env, ou ../agnes-nei/.env ao lado do projeto (ex.: /opt/agnes na VPS)."""
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    for c in (os.environ.get('AGNES_ENV', ''), os.path.expanduser('~/projetos/agnes-nei/.env'),
+              os.path.join(aqui, '..', 'agnes-nei', '.env'), os.path.join(aqui, '..', '..', '..', 'agnes-nei', '.env')):
+        if c and os.path.exists(c):
+            return c
+    return os.path.expanduser('~/projetos/agnes-nei/.env')
+
+
+KEY = os.environ.get('AGNES_API_KEY')
+for line in (open(_acha_env()) if not KEY else []):
     if line.startswith('AGNES_API_KEY='):
         KEY = line.strip().split('=', 1)[1]
 IMG_API = 'https://apihub.agnes-ai.com/v1/images/generations'

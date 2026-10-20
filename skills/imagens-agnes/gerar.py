@@ -10,7 +10,6 @@ Tudo que este CLI aplica foi MEDIDO (ver ~/projetos/agnes-nei/NOTAS-API.md). Ver
 """
 import argparse, base64, json, os, struct, sys, time, urllib.request, urllib.error
 
-ENV = '/home/nmaldaner/projetos/agnes-nei/.env'
 API = 'https://apihub.agnes-ai.com/v1/images/generations'
 
 # tabela de dimensões (16:9 e 1:1 confirmados por medição; demais conforme doc)
@@ -21,6 +20,19 @@ DIMS = {
     '4:3': {'1K': '1152x864', '2K': '2304x1728', '3K': '3456x2592', '4K': '4608x3456'},
     '3:4': {'1K': '864x1152', '2K': '1728x2304', '3K': '2592x3456', '4K': '3456x4608'},
 }
+
+
+def _acha_env():
+    """AGNES_ENV, ou ~/projetos/agnes-nei/.env, ou ../agnes-nei/.env ao lado do projeto (ex.: /opt/agnes na VPS)."""
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    for c in (os.environ.get('AGNES_ENV', ''), os.path.expanduser('~/projetos/agnes-nei/.env'),
+              os.path.join(aqui, '..', 'agnes-nei', '.env'), os.path.join(aqui, '..', '..', '..', 'agnes-nei', '.env')):
+        if c and os.path.exists(c):
+            return c
+    return os.path.expanduser('~/projetos/agnes-nei/.env')
+
+
+ENV = _acha_env()
 
 
 def key():
